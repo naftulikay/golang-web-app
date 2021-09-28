@@ -1,0 +1,51 @@
+---
+version: "3"
+services:
+  frontend:
+    build: docker/images/frontend/
+    image: "naftulikay/golang-webapp-frontend:latest"
+    ports:
+      - "8000:80"
+    environment:
+      - API_HOST=api
+      - API_PORT=8080
+      - API_PROTO=http
+    depends_on:
+      - api
+    links:
+      - "api:api"
+
+  api:
+    build: .
+    image: "naftulikay/golang-webapp:latest"
+    environment:
+      - ENV=dev
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_USER=webapp
+      - MYSQL_PASSWORD=CFXabvFtw85Sv93t8MxG09HxE28AY68i
+      - MYSQL_DATABASE=webapp
+    ports:
+      - "8080:8080"
+    user: "1000:1000"  # don't run as root
+    depends_on:
+      - db
+    links:
+      - "db:db"
+
+  db:
+    build: docker/images/database
+    image: "naftulikay/golang-webapp-db:latest"
+    environment:
+      - MYSQL_USER=webapp
+      - MYSQL_PASSWORD=CFXabvFtw85Sv93t8MxG09HxE28AY68i
+    ports:
+      - "3306:3306"
+
+  phpMyAdmin:
+    image: "phpmyadmin"
+    restart: always
+    ports:
+      - "8088:80"
+    links:
+      - "db:db"
