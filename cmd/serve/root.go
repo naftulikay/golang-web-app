@@ -5,6 +5,8 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
+	"github.com/naftulikay/golang-webapp/pkg"
+	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -34,6 +36,73 @@ func serveCommandEnvDefaults() map[string]interface{} {
 	}
 }
 
+type ServeConfig struct { // implements interfaces.AppConfig
+	Environment                 string `mapstructure:"env"`
+	ListenHost                  string `mapstructure:"listen_host"`
+	ListenPort                  uint16 `mapstructure:"listen_port"`
+	cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
+}
+
+func (s ServeConfig) Env() string {
+	return s.Environment
+}
+
+func (s ServeConfig) Listen() interfaces.ListenConfig {
+	return ServeListenConfig{
+		listenHost: s.ListenHost,
+		listenPort: s.ListenPort,
+	}
+}
+
+func (s ServeConfig) MySQL() interfaces.MySQLConfig {
+	return ServeMySQLConfig{
+		MySQLConfigCommon: cmdCommon.MySQLConfigCommon{
+			MySQLHost:     s.MySQLHost,
+			MySQLPort:     s.MySQLPort,
+			MySQLDatabase: s.MySQLDatabase,
+			MySQLUser:     s.MySQLUser,
+			MySQLPassword: s.MySQLPassword,
+		},
+	}
+}
+
+type ServeListenConfig struct { // implements interfaces.ListenConfig
+	listenHost string `mapstructure:"listen_host"`
+	listenPort uint16 `mapstructure:"listen_port"`
+}
+
+func (s ServeListenConfig) Host() string {
+	return s.listenHost
+}
+
+func (s ServeListenConfig) Port() uint16 {
+	return s.listenPort
+}
+
+type ServeMySQLConfig struct { // implements interfaces.MySQLConfig
+	cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
+}
+
+func (s ServeMySQLConfig) Host() string {
+	return s.MySQLHost
+}
+
+func (s ServeMySQLConfig) Port() uint16 {
+	return s.MySQLPort
+}
+
+func (s ServeMySQLConfig) Database() string {
+	return s.MySQLDatabase
+}
+
+func (s ServeMySQLConfig) User() string {
+	return s.MySQLUser
+}
+
+func (s ServeMySQLConfig) Password() string {
+	return s.MySQLPassword
+}
+
 var (
 	serveCommand = &cobra.Command{
 		Use:   "serve",
@@ -53,13 +122,7 @@ var (
 			// NOTE if you need to add a viper config file, register it here
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			type Config struct {
-				ListenHost                  string `mapstructure:"listen_host"`
-				ListenPort                  uint16 `mapstructure:"listen_port"`
-				cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
-			}
-
-			var config Config
+			var config ServeConfig
 
 			if err := viper.Unmarshal(&config); err != nil {
 				log.Fatalf("Unable to unmarshal config: %s", err)
@@ -116,6 +179,8 @@ var (
 				log.Printf("Received request!")
 				w.WriteHeader(http.StatusOK)
 			})
+
+			pkg.Start(config)
 
 			server := &http.Server{
 				Addr:         fmt.Sprintf("%s:%d", config.ListenHost, config.ListenPort),
