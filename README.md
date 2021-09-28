@@ -1,4 +1,4 @@
-# golang-web-app ![Build Status][status.svg]
+# golang-webapp ![Build Status][status.svg]
 
 An example Golang service with batteries included to demonstrate building a full end-to-end web app.
 

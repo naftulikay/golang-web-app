@@ -1,3 +1,3 @@
-module github.com/naftulikay/golang-web-app
+module github.com/naftulikay/golang-webapp
 
 go 1.16
