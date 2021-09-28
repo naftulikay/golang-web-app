@@ -9,12 +9,13 @@ const (
 	CliFlagMySQLPassword = "mysql-password"
 	CliFlagListen        = "listen"
 	CliFlagPort          = "port"
+	CliFlagMigrate       = "migrate"
 )
 
 // CliFlags Return a list of all known CLI flags used by any and all commands.
 func CliFlags() []string {
 	return []string{
 		CliFlagEnv, CliFlagMySQLHost, CliFlagMySQLPort, CliFlagMySQLDatabase, CliFlagMySQLUser, CliFlagMySQLPassword,
-		CliFlagListen, CliFlagPort,
+		CliFlagListen, CliFlagPort, CliFlagMigrate,
 	}
 }

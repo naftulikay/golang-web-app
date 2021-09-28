@@ -2,70 +2,69 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/cenkalti/backoff"
+	"github.com/gorilla/mux"
+	"github.com/naftulikay/golang-webapp/pkg/database"
+	"github.com/naftulikay/golang-webapp/pkg/handlers"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
-	"github.com/naftulikay/golang-webapp/pkg/models"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"github.com/naftulikay/golang-webapp/pkg/logging"
+	"github.com/naftulikay/golang-webapp/pkg/middleware"
+	"github.com/naftulikay/golang-webapp/pkg/routes"
+	_ "github.com/swaggo/swag"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"time"
 )
 
 func Start(config interfaces.AppConfig) {
-	log.Printf("Environment: %s", config.Env())
+	// initialize logging
+	rootLogger, err := logging.Configure(config)
+	rootLogger = rootLogger.Named("app")
 
-	log.Printf("Dumping listen configuration...")
-	log.Printf("listen_host: %s, listen_port: %d", config.Listen().Host(), config.Listen().Port())
-
-	log.Printf("Dumping MySQL configuration...")
-	log.Printf("mysql_host: %s, mysql_port: %d, mysql_database: %s, mysql_user: %s, mysql_password: %s",
-		config.MySQL().Host(), config.MySQL().Port(), config.MySQL().Database(), config.MySQL().User(),
-		config.MySQL().Password())
-
-	var db *gorm.DB
+	if err != nil {
+		log.Fatalf("Unable to configure Zap logging: %s", err)
+	}
 
 	// connect to database
-	err := backoff.Retry(func() error {
-		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4", config.MySQL().User(),
-			config.MySQL().Password(), config.MySQL().Host(), config.MySQL().Port(), config.MySQL().Database())
-
-		connection, err := gorm.Open(mysql.Open(uri))
-
-		if err != nil {
-			return err
-		}
-
-		db = connection
-
-		return nil
-	}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 15))
+	db, err := database.Connect(config.MySQL(), rootLogger.Named("database"))
 
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %s", err)
+		rootLogger.Fatal("Unable to connect to database.")
 	}
-
-	log.Printf("Database connected (%v)", db)
-	log.Printf("Initialization complete, serving at http://%s:%d/", config.Listen().Host(),
-		config.Listen().Port())
 
 	// migrate models
-	err = db.AutoMigrate(models.User{})
+	if config.AutoMigrate() {
+		err = database.AutoMigrate(db, rootLogger.Named("migrator"))
 
-	if err != nil {
-		log.Fatalf("Unable to migrate models: %s", err)
+		if err != nil {
+			rootLogger.Warn("Automatic database migration failed, proceeding anyway.",
+				zap.Error(err))
+		}
 	}
 
+	// FIXME wire together app
+
+	// setup router
+	router := mux.NewRouter()
+
+	// setup middleware
+	middleware.ConfigureRoot(nil)
+
+	// configure routes
+	routes.ConfigureRoutes(nil, router)
+
 	// setup http server
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/get", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received request!")
-		w.WriteHeader(http.StatusOK)
-	})
+	listenAddr := fmt.Sprintf("%s:%d", config.Listen().Host(), config.Listen().Port())
+
+	rootLogger.Info("Starting web server",
+		zap.String("url", fmt.Sprintf("http://%s", listenAddr)),
+		zap.String("host", config.Listen().Host()),
+		zap.Uint16("port", config.Listen().Port()))
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", config.Listen().Host(), config.Listen().Port()),
-		Handler:      mux,
+		Addr: listenAddr,
+		// wrap the entire router in CORS because CORS needs access to everything basically
+		Handler:      handlers.CORS(config, rootLogger.Named("cors"))(router),
 		ReadTimeout:  300 * time.Second, // support long debugging sessions
 		WriteTimeout: 300 * time.Second,
 	}

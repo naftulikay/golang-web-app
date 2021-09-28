@@ -1,6 +1,7 @@
 package interfaces
 
 type AppConfig interface {
+	AutoMigrate() bool
 	Env() string
 	Listen() ListenConfig
 	MySQL() MySQLConfig

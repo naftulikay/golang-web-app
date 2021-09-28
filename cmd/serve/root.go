@@ -37,10 +37,15 @@ func serveCommandEnvDefaults() map[string]interface{} {
 }
 
 type ServeConfig struct { // implements interfaces.AppConfig
+	Migrate                     bool   `mapstructure:"migrate"`
 	Environment                 string `mapstructure:"env" govalid:"req|in:dev,stg,prod"`
 	ListenHost                  string `mapstructure:"listen_host" govalid:"req"`
 	ListenPort                  uint16 `mapstructure:"listen_port" govalid:"req"`
 	cmdCommon.MySQLConfigCommon `mapstructure:",squash" govalid:"req"`
+}
+
+func (s ServeConfig) AutoMigrate() bool {
+	return s.Migrate
 }
 
 func (s ServeConfig) Env() string {
@@ -233,4 +238,8 @@ func init() {
 	flags.Uint16P(cmdConstants.CliFlagPort, "p", cmdConstants.DefaultListenPort,
 		fmt.Sprintf("The port to listen on for incoming connections. [env: %s]",
 			strings.ToUpper(cmdConstants.CliFlagPort)))
+
+	// --migrate
+	flags.BoolP(cmdConstants.CliFlagMigrate, "", false,
+		"Whether to attempt to auto-migrate database models on stort.")
 }
