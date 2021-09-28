@@ -48,6 +48,8 @@ func CORSOriginValidator(config interfaces.AppConfig, logger *zap.Logger) func(s
 			if err != nil {
 				logger.Warn("Unable to parse origin during CORS origin validation, denying request.",
 					zap.Error(err), zap.String("origin", origin))
+
+				return false
 			}
 
 			// if the hostname is localhost, or it ends in .local, or it is a loopback IP address, allow
