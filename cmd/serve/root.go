@@ -108,6 +108,7 @@ var (
 				log.Fatalf("Unable to connect to database: %s", err)
 			}
 
+			log.Printf("Database connected (%v)", db)
 			log.Printf("Initialization complete, serving at http://%s:%d/", config.ListenHost, config.ListenPort)
 
 			mux := http.NewServeMux()
