@@ -1,6 +1,7 @@
 package cmdConstants
 
 const (
+	EnvVarEnvironment   = "env"
 	EnvVarMySQLHost     = "mysql_host"
 	EnvVarMySQLPort     = "mysql_port"
 	EnvVarMySQLDatabase = "mysql_database"
@@ -13,6 +14,6 @@ const (
 // EnvVariables Return a list of all known environment variables used by any and all commands.
 func EnvVariables() []string {
 	return []string{
-		EnvVarMySQLHost, EnvVarMySQLPort, EnvVarMySQLDatabase, EnvVarMySQLUser, EnvVarMySQLPassword,
+		EnvVarEnvironment, EnvVarMySQLHost, EnvVarMySQLPort, EnvVarMySQLDatabase, EnvVarMySQLUser, EnvVarMySQLPassword,
 	}
 }

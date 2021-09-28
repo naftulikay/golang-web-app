@@ -2,45 +2,45 @@ package serve
 
 import (
 	"fmt"
-	"github.com/cenkalti/backoff"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
 	"github.com/naftulikay/golang-webapp/pkg"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"github.com/twharmon/govalid"
 	"log"
-	"net/http"
 	"strings"
-	"time"
 )
 
 func serveCommandFlagsToEnv() map[string]string {
 	return map[string]string{
+		cmdConstants.CliFlagEnv:           cmdConstants.EnvVarEnvironment,
 		cmdConstants.CliFlagMySQLHost:     cmdConstants.EnvVarMySQLHost,
 		cmdConstants.CliFlagMySQLPort:     cmdConstants.EnvVarMySQLPort,
 		cmdConstants.CliFlagMySQLDatabase: cmdConstants.EnvVarMySQLDatabase,
 		cmdConstants.CliFlagMySQLUser:     cmdConstants.EnvVarMySQLUser,
 		cmdConstants.CliFlagMySQLPassword: cmdConstants.EnvVarMySQLPassword,
+		cmdConstants.CliFlagListen:        cmdConstants.EnvVarListenHost,
+		cmdConstants.CliFlagPort:          cmdConstants.EnvVarListenPort,
 	}
 }
 
 func serveCommandEnvDefaults() map[string]interface{} {
 	return map[string]interface{}{
-		cmdConstants.EnvVarMySQLHost:  cmdConstants.DefaultMySQLHost,
-		cmdConstants.EnvVarMySQLPort:  cmdConstants.DefaultMySQLPort,
-		cmdConstants.EnvVarListenHost: cmdConstants.DefaultListenHost,
-		cmdConstants.EnvVarListenPort: cmdConstants.DefaultListenPort,
+		cmdConstants.EnvVarMySQLHost:   cmdConstants.DefaultMySQLHost,
+		cmdConstants.EnvVarMySQLPort:   cmdConstants.DefaultMySQLPort,
+		cmdConstants.EnvVarListenHost:  cmdConstants.DefaultListenHost,
+		cmdConstants.EnvVarListenPort:  cmdConstants.DefaultListenPort,
+		cmdConstants.EnvVarEnvironment: cmdConstants.DefaultEnvironment,
 	}
 }
 
 type ServeConfig struct { // implements interfaces.AppConfig
-	Environment                 string `mapstructure:"env"`
-	ListenHost                  string `mapstructure:"listen_host"`
-	ListenPort                  uint16 `mapstructure:"listen_port"`
-	cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
+	Environment                 string `mapstructure:"env" govalid:"req|in:dev,stg,prod"`
+	ListenHost                  string `mapstructure:"listen_host" govalid:"req"`
+	ListenPort                  uint16 `mapstructure:"listen_port" govalid:"req"`
+	cmdCommon.MySQLConfigCommon `mapstructure:",squash" govalid:"req"`
 }
 
 func (s ServeConfig) Env() string {
@@ -104,6 +104,7 @@ func (s ServeMySQLConfig) Password() string {
 }
 
 var (
+	validator    *govalid.Validator
 	serveCommand = &cobra.Command{
 		Use:   "serve",
 		Short: "Run the web service.",
@@ -128,6 +129,34 @@ var (
 				log.Fatalf("Unable to unmarshal config: %s", err)
 			}
 
+			violations, err := validator.Violations(config)
+
+			if err != nil {
+				log.Fatalf("Unable to run validator: %s", err)
+			}
+
+			if len(violations) > 0 {
+				for _, v := range violations {
+					log.Printf("Configuration Error: %s", v)
+				}
+
+				log.Fatalf("Validation failed.")
+			}
+
+			violations, err = validator.Violations(config.MySQLConfigCommon)
+
+			if err != nil {
+				log.Fatalf("Unable to run validator: %s", err)
+			}
+
+			if len(violations) > 0 {
+				for _, v := range violations {
+					log.Printf("MySQL Configuration Error: %s", v)
+				}
+
+				log.Fatalf("Validation failed.")
+			}
+
 			// validation for non-default parameters
 			if len(config.ListenHost) == 0 {
 				log.Fatalf("Please pass a valid listen host via the --%s CLI flag or %s environment variable.",
@@ -149,51 +178,7 @@ var (
 					cmdConstants.CliFlagMySQLPassword, strings.ToUpper(cmdConstants.EnvVarMySQLPassword))
 			}
 
-			var db *gorm.DB
-
-			// connect to database
-			err := backoff.Retry(func() error {
-				uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4", config.MySQLUser, config.MySQLPassword,
-					config.MySQLHost, config.MySQLPort, config.MySQLDatabase)
-
-				connection, err := gorm.Open(mysql.Open(uri))
-
-				if err != nil {
-					return err
-				}
-
-				db = connection
-
-				return nil
-			}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 15))
-
-			if err != nil {
-				log.Fatalf("Unable to connect to database: %s", err)
-			}
-
-			log.Printf("Database connected (%v)", db)
-			log.Printf("Initialization complete, serving at http://%s:%d/", config.ListenHost, config.ListenPort)
-
-			mux := http.NewServeMux()
-			mux.HandleFunc("/api/v1/get", func(w http.ResponseWriter, r *http.Request) {
-				log.Printf("Received request!")
-				w.WriteHeader(http.StatusOK)
-			})
-
 			pkg.Start(config)
-
-			server := &http.Server{
-				Addr:         fmt.Sprintf("%s:%d", config.ListenHost, config.ListenPort),
-				Handler:      mux,
-				ReadTimeout:  300 * time.Second, // support long debugging sessions
-				WriteTimeout: 300 * time.Second,
-			}
-
-			err = server.ListenAndServe()
-
-			if err != nil {
-				log.Fatalf("Failed to serve application: %s", err)
-			}
 		},
 	}
 )
@@ -203,7 +188,21 @@ func Commands() []*cobra.Command {
 }
 
 func init() {
+	validator = govalid.New()
+
+	err := validator.Register(ServeConfig{}, ServeListenConfig{}, ServeMySQLConfig{},
+		cmdCommon.MySQLConfigCommon{})
+
+	if err != nil {
+		log.Fatalf("Unable to configure validators: %s", err)
+	}
+
 	flags := serveCommand.Flags()
+
+	// --env
+	flags.StringP(cmdConstants.CliFlagEnv, "e", cmdConstants.DefaultEnvironment,
+		fmt.Sprintf("The execution environment for the application. [env: %s]",
+			strings.ToUpper(cmdConstants.EnvVarEnvironment)))
 
 	// --mysql-host
 	flags.StringP(cmdConstants.CliFlagMySQLHost, "", cmdConstants.DefaultMySQLHost,
@@ -225,6 +224,7 @@ func init() {
 	flags.StringP(cmdConstants.CliFlagMySQLPassword, "", "",
 		fmt.Sprintf("The MySQL password to connect with. [env: %s]",
 			strings.ToUpper(cmdConstants.EnvVarMySQLPassword)))
+
 	// --listen
 	flags.StringP(cmdConstants.CliFlagListen, "H", cmdConstants.DefaultListenHost,
 		fmt.Sprintf("The host to listen on for incoming connections. [env: %s]",
