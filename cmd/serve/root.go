@@ -2,12 +2,17 @@ package serve
 
 import (
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"strings"
+	"time"
 )
 
 func serveCommandFlagsToEnv() map[string]string {
@@ -44,11 +49,13 @@ var (
 			for env, defaultValue := range serveCommandEnvDefaults() {
 				viper.SetDefault(env, defaultValue)
 			}
+
+			// NOTE if you need to add a viper config file, register it here
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			type Config struct {
 				ListenHost                  string `mapstructure:"listen_host"`
-				ListenPort                  uint16 `mapstructure:"listen_port"'`
+				ListenPort                  uint16 `mapstructure:"listen_port"`
 				cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
 			}
 
@@ -58,7 +65,69 @@ var (
 				log.Fatalf("Unable to unmarshal config: %s", err)
 			}
 
-			log.Printf("Config: %+v", config)
+			// validation for non-default parameters
+			if len(config.ListenHost) == 0 {
+				log.Fatalf("Please pass a valid listen host via the --%s CLI flag or %s environment variable.",
+					cmdConstants.CliFlagListen, strings.ToUpper(cmdConstants.EnvVarListenHost))
+			}
+
+			if len(config.MySQLDatabase) == 0 {
+				log.Fatalf("Please pass a MySQL database schema name via the --%s CLI flag or %s environment variable.",
+					cmdConstants.CliFlagMySQLDatabase, strings.ToUpper(cmdConstants.EnvVarMySQLDatabase))
+			}
+
+			if len(config.MySQLUser) == 0 {
+				log.Fatalf("Please pass a MySQL user name via the --%s CLI flag or %s environment variable.",
+					cmdConstants.CliFlagMySQLUser, strings.ToUpper(cmdConstants.EnvVarMySQLUser))
+			}
+
+			if len(config.MySQLPassword) == 0 {
+				log.Fatalf("Please pass a MySQL password via the --%s CLI flag or %s environment variable.",
+					cmdConstants.CliFlagMySQLPassword, strings.ToUpper(cmdConstants.EnvVarMySQLPassword))
+			}
+
+			var db *gorm.DB
+
+			// connect to database
+			err := backoff.Retry(func() error {
+				uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4", config.MySQLUser, config.MySQLPassword,
+					config.MySQLHost, config.MySQLPort, config.MySQLDatabase)
+
+				connection, err := gorm.Open(mysql.Open(uri))
+
+				if err != nil {
+					return err
+				}
+
+				db = connection
+
+				return nil
+			}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 15))
+
+			if err != nil {
+				log.Fatalf("Unable to connect to database: %s", err)
+			}
+
+			log.Printf("Initialization complete, serving at http://%s:%d/", config.ListenHost, config.ListenPort)
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("/api/v1/get", func(w http.ResponseWriter, r *http.Request) {
+				log.Printf("Received request!")
+				w.WriteHeader(http.StatusOK)
+			})
+
+			server := &http.Server{
+				Addr:         fmt.Sprintf("%s:%d", config.ListenHost, config.ListenPort),
+				Handler:      mux,
+				ReadTimeout:  300 * time.Second, // support long debugging sessions
+				WriteTimeout: 300 * time.Second,
+			}
+
+			err = server.ListenAndServe()
+
+			if err != nil {
+				log.Fatalf("Failed to serve application: %s", err)
+			}
 		},
 	}
 )

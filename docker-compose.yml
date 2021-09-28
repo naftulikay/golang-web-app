@@ -20,6 +20,7 @@ services:
     image: "naftulikay/golang-webapp:latest"
     environment:
       - ENV=dev
+      - LISTEN_HOST=0.0.0.0
       - MYSQL_HOST=db
       - MYSQL_PORT=3306
       - MYSQL_USER=webapp
@@ -37,6 +38,8 @@ services:
     build: docker/images/database
     image: "naftulikay/golang-webapp-db:latest"
     environment:
+      - MYSQL_ROOT_PASSWORD=0RfXjOU6COp6HOQJJ1uN1KAuyiWtzK1m
+      - MYSQL_DATABASE=webapp
       - MYSQL_USER=webapp
       - MYSQL_PASSWORD=CFXabvFtw85Sv93t8MxG09HxE28AY68i
     ports:

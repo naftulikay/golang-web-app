@@ -9,7 +9,11 @@ RUN go get github.com/swaggo/swag/cmd/swag
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+# lots of seemingly redundant but not unrequired steps, not an issue at download time due to separate build image
+# even with a good .dockerignore, `COPY . .` forces a rebuild every time
+COPY main.go .
+COPY cmd/ /usr/src/app/cmd/
+COPY pkg/ /usr/src/app/pkg/
 
 # build the swagger docs
 RUN swag init
