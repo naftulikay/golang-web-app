@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cenkalti/backoff"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
+	"github.com/naftulikay/golang-webapp/pkg/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
@@ -48,6 +49,14 @@ func Start(config interfaces.AppConfig) {
 	log.Printf("Initialization complete, serving at http://%s:%d/", config.Listen().Host(),
 		config.Listen().Port())
 
+	// migrate models
+	err = db.AutoMigrate(models.User{})
+
+	if err != nil {
+		log.Fatalf("Unable to migrate models: %s", err)
+	}
+
+	// setup http server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/get", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received request!")
