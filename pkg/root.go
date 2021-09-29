@@ -19,25 +19,25 @@ import (
 func Start(config interfaces.AppConfig) {
 	// initialize logging
 	rootLogger, err := logging.Configure(config)
-	rootLogger = rootLogger.Named("app")
+	logger := rootLogger.Named("app")
 
 	if err != nil {
 		log.Fatalf("Unable to configure Zap logging: %s", err)
 	}
 
 	// connect to database
-	db, err := database.Connect(config.MySQL(), rootLogger.Named("database"))
+	db, err := database.Connect(config.MySQL(), logger.Named("database"))
 
 	if err != nil {
-		rootLogger.Fatal("Unable to connect to database.")
+		logger.Fatal("Unable to connect to database.")
 	}
 
 	// migrate models
 	if config.AutoMigrate() {
-		err = database.AutoMigrate(db, rootLogger.Named("migrator"))
+		err = database.AutoMigrate(db, logger.Named("migrator"))
 
 		if err != nil {
-			rootLogger.Warn("Automatic database migration failed, proceeding anyway.",
+			logger.Warn("Automatic database migration failed, proceeding anyway.",
 				zap.Error(err))
 		}
 	}
@@ -64,7 +64,7 @@ func Start(config interfaces.AppConfig) {
 	server := &http.Server{
 		Addr: listenAddr,
 		// wrap the entire router in CORS because CORS needs access to everything basically
-		Handler:      handlers.CORS(config, rootLogger.Named("cors"))(router),
+		Handler:      handlers.CORS(config, logger.Named("cors"))(router),
 		ReadTimeout:  300 * time.Second, // support long debugging sessions
 		WriteTimeout: 300 * time.Second,
 	}

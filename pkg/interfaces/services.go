@@ -5,14 +5,11 @@ import (
 )
 
 type JWTService interface {
-	// Generate Create and sign a token for a given user, returning the signed token string, the claims, and optionally
-	// an error if something went wrong.
+	// Generate Create and sign a token for a given user.
 	Generate(user *models.User) (*JWTGenerateResult, error)
-	// Validate Securely validate a token string, returning the parsed token and its claims.
+	// Validate Securely validate a token string, returning the relevant parsed JWT data.
 	//
-	// If this function returns the token and claims (e.g. if both are not nil), the API contract must be that
-	// token.Valid is true. If either the token or the claims are nil, or the error is not nil, validation has failed
-	// either in an expected or unexpected way.
+	// If JWTValidateResult is nil, validation has failed for the token. If err is not nil,
 	Validate(token string) (*JWTValidateResult, error)
 }
 

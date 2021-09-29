@@ -6,6 +6,7 @@ import (
 	"github.com/naftulikay/golang-webapp/pkg/models"
 	"github.com/naftulikay/golang-webapp/pkg/utils"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"testing"
 	"time"
@@ -49,7 +50,8 @@ func TestJWTServiceImpl_Validate_Panics(t *testing.T) {
 
 func TestJWTServiceImpl_E2E(t *testing.T) {
 	service := JWTServiceImpl{
-		key: utils.InfallibleSecureRandBytes32(),
+		key:    utils.InfallibleSecureRandBytes32(),
+		logger: zap.NewNop(),
 	}
 
 	user := models.User{
@@ -93,10 +95,10 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 	assert.GreaterOrEqual(t, now.Unix(), claims.IssuedAt)
 	assert.Equal(t, claims.NotBefore+int64(JWTExpiry.Seconds()), claims.ExpiresAt)
 
-	assert.Greater(t, len(*signed), 0)
+	assert.Greater(t, len(signed), 0)
 
 	// generation testing is complete, now onto verification
-	validated, err := service.Validate(*signed)
+	validated, err := service.Validate(signed)
 
 	assert.NotNil(t, validated)
 
@@ -124,5 +126,5 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 	ss, err := token.SignedString(service.key[:])
 
 	assert.Nil(t, err)
-	assert.Equal(t, *signed, ss)
+	assert.Equal(t, signed, ss)
 }

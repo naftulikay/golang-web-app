@@ -2,10 +2,8 @@ package service
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt"
-	"github.com/naftulikay/golang-webapp/pkg/auth"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
-	"github.com/naftulikay/golang-webapp/pkg/models"
+	"github.com/naftulikay/golang-webapp/pkg/results"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +41,7 @@ func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult
 			return nil, loginFailure
 		}
 
-		result := newLoginResult(user, (*jwtResult).SignedToken(), (*jwtResult).Token(), (*jwtResult).Claims())
+		result := results.NewLoginResult(*user, (*jwtResult).SignedToken(), (*jwtResult).Token(), (*jwtResult).Claims())
 
 		return &result, nil
 	} else {
@@ -52,36 +50,4 @@ func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult
 
 		return nil, loginFailure
 	}
-}
-
-func newLoginResult(user *models.User, signedToken *string, token *jwt.Token, claims *auth.JWTClaims) interfaces.LoginResult {
-	return loginResultImpl{
-		user:        user,
-		signedToken: signedToken,
-		token:       token,
-		claims:      claims,
-	}
-}
-
-type loginResultImpl struct {
-	user        *models.User
-	signedToken *string
-	token       *jwt.Token
-	claims      *auth.JWTClaims
-}
-
-func (l loginResultImpl) User() *models.User {
-	return l.user
-}
-
-func (l loginResultImpl) SignedToken() *string {
-	return l.signedToken
-}
-
-func (l loginResultImpl) Token() *jwt.Token {
-	return l.token
-}
-
-func (l loginResultImpl) Claims() *auth.JWTClaims {
-	return l.claims
 }

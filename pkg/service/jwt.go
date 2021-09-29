@@ -7,17 +7,20 @@ import (
 	"github.com/naftulikay/golang-webapp/pkg/auth"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/models"
+	"github.com/naftulikay/golang-webapp/pkg/results"
 	"github.com/naftulikay/golang-webapp/pkg/utils"
+	"go.uber.org/zap"
 	"time"
 )
 
 const (
-	JWTIssuer = "github.com/nafutlikay/golang-webapp"
+	JWTIssuer = "github.com/nafutliikay/golang-webapp"
 	JWTExpiry = 30 * 24 * time.Hour
 )
 
 type JWTServiceImpl struct {
-	key [32]byte
+	key    [32]byte
+	logger *zap.Logger
 }
 
 func (j JWTServiceImpl) safe() bool {
@@ -64,7 +67,7 @@ func (j JWTServiceImpl) Generate(user *models.User) (*interfaces.JWTGenerateResu
 		return nil, err
 	}
 
-	result := newJWTGenerateResult(&signed, token, &claims)
+	result := results.NewJWTGenerateResult(&signed, token, &claims)
 
 	return &result, nil
 }
@@ -80,59 +83,22 @@ func (j JWTServiceImpl) Validate(encodedToken string) (*interfaces.JWTValidateRe
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*auth.JWTClaims); ok && token.Valid {
-		result := newJWTValidateResult(token, claims)
+	claims, claimsOk := token.Claims.(*auth.JWTClaims)
+
+	if claimsOk && token.Valid {
+		j.logger.Debug("Token is valid and claims are of the correct type.",
+			zap.Uint64("user_id", claims.UserID), zap.String("user_email", claims.Email))
+
+		result := results.NewJWTValidateResult(*token, *claims)
 		return &result, nil
+	}
+
+	if !claimsOk {
+		j.logger.Debug("Received invalid claims object, unable to deserialize as auth.JWTClaims.")
+
+		return nil, fmt.Errorf("invalid claims")
 	}
 
 	// this occurs when we've got claims of the wrong type or when the token is invalid
 	return nil, nil
-}
-
-// jwt generate result implementation
-func newJWTGenerateResult(signedToken *string, token *jwt.Token, claims *auth.JWTClaims) interfaces.JWTGenerateResult {
-	return jwtGenerateResult{
-		signedToken: signedToken,
-		token:       token,
-		claims:      claims,
-	}
-}
-
-type jwtGenerateResult struct {
-	signedToken *string
-	token       *jwt.Token
-	claims      *auth.JWTClaims
-}
-
-func (j jwtGenerateResult) SignedToken() *string {
-	return j.signedToken
-}
-
-func (j jwtGenerateResult) Token() *jwt.Token {
-	return j.token
-}
-
-func (j jwtGenerateResult) Claims() *auth.JWTClaims {
-	return j.claims
-}
-
-// jwt validate result implementation
-func newJWTValidateResult(token *jwt.Token, claims *auth.JWTClaims) interfaces.JWTValidateResult {
-	return jwtValidateResult{
-		token:  token,
-		claims: claims,
-	}
-}
-
-type jwtValidateResult struct {
-	token  *jwt.Token
-	claims *auth.JWTClaims
-}
-
-func (j jwtValidateResult) Token() *jwt.Token {
-	return j.token
-}
-
-func (j jwtValidateResult) Claims() *auth.JWTClaims {
-	return j.claims
 }

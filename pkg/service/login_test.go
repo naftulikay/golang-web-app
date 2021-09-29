@@ -24,7 +24,7 @@ func (m MockUserDao) WithEmail(email string) (*models.User, error) {
 	}
 
 	return &models.User{
-		Email:     "donald.danguson@gmail.com",
+		Email:     email,
 		FirstName: "Donaldus",
 		LastName:  "Danguson",
 		Role:      models.UserTypeNormal,
@@ -56,21 +56,21 @@ func TestLoginServiceImpl_Interfaces(t *testing.T) {
 }
 
 func TestLoginServiceImpl_Login_Success(t *testing.T) {
-
+	t.Skip("unimplemented")
 }
 
 func TestLoginServiceImpl_Login_DaoError(t *testing.T) {
-
+	t.Skip("unimplemented")
 }
 
 func TestLoginServiceImpl_Login_NotFound(t *testing.T) {
-
+	t.Skip("unimplemented")
 }
 
 func TestLoginServiceImpl_Login_WrongPassword(t *testing.T) {
-
+	t.Skip("unimplemented")
 }
 
 func TestLoginServiceImpl_Login_JWTError(t *testing.T) {
-
+	t.Skip("unimplemented")
 }
