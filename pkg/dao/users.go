@@ -20,7 +20,7 @@ func (u UserDaoImpl) Get(id uint) (*models.User, error) {
 	return &result, nil
 }
 
-func (u UserDaoImpl) WithUsername(username string) (*models.User, error) {
+func (u UserDaoImpl) WithEmail(username string) (*models.User, error) {
 	var result models.User
 
 	if u.DB.Where("username = ?", username).First(&result).RowsAffected == 0 {

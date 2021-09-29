@@ -19,5 +19,5 @@ type JWTService interface {
 }
 
 type LoginService interface {
-	Login(username, password string) (*models.User, error)
+	Login(email, password string) (*LoginResult, error)
 }
