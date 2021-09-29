@@ -1,13 +1,16 @@
 package service
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/howeyc/gopass"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/naftulikay/golang-webapp/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
+	"strings"
 )
 
 var (
@@ -23,8 +26,8 @@ var (
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			type Config struct {
-				Email                       string `mapstructure:"email" validate:"required"`
-				Password                    string `mapstructure:"password" validate:"required_unless=PasswordStdin false"`
+				Email                       string `mapstructure:"email" validate:"required,email"`
+				Password                    string `mapstructure:"password" validate:"required_unless=PasswordStdin true"`
 				PasswordStdin               bool   `mapstructure:"password_stdin"`
 				cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
 			}
@@ -57,7 +60,23 @@ var (
 				log.Fatalf("Unable to create a logger: %s", err)
 			}
 
-			logger.Debug("BRANGUS")
+			if passwordStdin {
+				print("Enter Password: ")
+
+				pwbytes, err := gopass.GetPasswd()
+
+				if err != nil {
+					logger.Fatal("Unable to read password from standard input.", zap.Error(err))
+				}
+
+				if len(pwbytes) == 0 {
+					logger.Fatal("Please enter a password.")
+				}
+
+				config.Password = strings.TrimSpace(string(pwbytes))
+			}
+
+			logger.Info(fmt.Sprintf("Attempting to log in user %s...", config.Email))
 		},
 	}
 )
