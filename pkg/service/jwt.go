@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/naftulikay/golang-webapp/pkg/auth"
+	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/models"
 	"github.com/naftulikay/golang-webapp/pkg/utils"
 	"time"
@@ -34,7 +35,7 @@ func (j JWTServiceImpl) secretFactory(token *jwt.Token) (interface{}, error) {
 	return j.key[:], nil
 }
 
-func (j JWTServiceImpl) Generate(user *models.User) (*string, *jwt.Token, *auth.JWTClaims, error) {
+func (j JWTServiceImpl) Generate(user *models.User) (*interfaces.JWTGenerateResult, error) {
 	if !j.safe() {
 		panic("jwt key has a zero value")
 	}
@@ -60,13 +61,15 @@ func (j JWTServiceImpl) Generate(user *models.User) (*string, *jwt.Token, *auth.
 	signed, err := token.SignedString(j.key[:])
 
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return &signed, token, &claims, nil
+	result := newJWTGenerateResult(&signed, token, &claims)
+
+	return &result, nil
 }
 
-func (j JWTServiceImpl) Validate(encodedToken string) (*jwt.Token, *auth.JWTClaims, error) {
+func (j JWTServiceImpl) Validate(encodedToken string) (*interfaces.JWTValidateResult, error) {
 	if !j.safe() {
 		panic("jwt key has a zero value")
 	}
@@ -74,13 +77,62 @@ func (j JWTServiceImpl) Validate(encodedToken string) (*jwt.Token, *auth.JWTClai
 	token, err := jwt.ParseWithClaims(encodedToken, &auth.JWTClaims{}, j.secretFactory)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if claims, ok := token.Claims.(*auth.JWTClaims); ok && token.Valid {
-		return token, claims, nil
+		result := newJWTValidateResult(token, claims)
+		return &result, nil
 	}
 
 	// this occurs when we've got claims of the wrong type or when the token is invalid
-	return nil, nil, nil
+	return nil, nil
+}
+
+// jwt generate result implementation
+func newJWTGenerateResult(signedToken *string, token *jwt.Token, claims *auth.JWTClaims) interfaces.JWTGenerateResult {
+	return jwtGenerateResult{
+		signedToken: signedToken,
+		token:       token,
+		claims:      claims,
+	}
+}
+
+type jwtGenerateResult struct {
+	signedToken *string
+	token       *jwt.Token
+	claims      *auth.JWTClaims
+}
+
+func (j jwtGenerateResult) SignedToken() *string {
+	return j.signedToken
+}
+
+func (j jwtGenerateResult) Token() *jwt.Token {
+	return j.token
+}
+
+func (j jwtGenerateResult) Claims() *auth.JWTClaims {
+	return j.claims
+}
+
+// jwt validate result implementation
+func newJWTValidateResult(token *jwt.Token, claims *auth.JWTClaims) interfaces.JWTValidateResult {
+	return jwtValidateResult{
+		token:  token,
+		claims: claims,
+	}
+}
+
+type jwtValidateResult struct {
+	token  *jwt.Token
+	claims *auth.JWTClaims
+}
+
+func (j jwtValidateResult) Token() *jwt.Token {
+	return j.token
+}
+
+func (j jwtValidateResult) Claims() *auth.JWTClaims {
+	return j.claims
 }

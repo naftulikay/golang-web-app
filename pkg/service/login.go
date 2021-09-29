@@ -34,7 +34,7 @@ func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult
 	}
 
 	if user.KDF.Validate(password) {
-		signed, token, claims, err := l.jwt.Generate(user)
+		jwtResult, err := l.jwt.Generate(user)
 
 		if err != nil {
 			l.logger.Warn("Failed to generate JWT token for user.", zap.Error(err),
@@ -43,7 +43,7 @@ func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult
 			return nil, loginFailure
 		}
 
-		result := newLoginResult(user, signed, token, claims)
+		result := newLoginResult(user, (*jwtResult).SignedToken(), (*jwtResult).Token(), (*jwtResult).Claims())
 
 		return &result, nil
 	} else {

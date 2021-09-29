@@ -28,7 +28,7 @@ func TestJWTServiceImpl_Generate_Panics(t *testing.T) {
 
 	user := models.User{}
 
-	_, _, _, _ = service.Generate(&user)
+	_, _ = service.Generate(&user)
 }
 
 func TestJWTServiceImpl_Validate_Panics(t *testing.T) {
@@ -44,7 +44,7 @@ func TestJWTServiceImpl_Validate_Panics(t *testing.T) {
 
 	tokenString := utils.InfallibleSecureRandBase64(64)
 
-	_, _, _ = service.Validate(tokenString)
+	_, _ = service.Validate(tokenString)
 }
 
 func TestJWTServiceImpl_E2E(t *testing.T) {
@@ -62,11 +62,17 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 		},
 	}
 
-	signed, token, claims, err := service.Generate(&user)
+	generated, err := service.Generate(&user)
 
 	if err != nil {
 		t.Errorf("unable to generate JWT token for user: %s", err)
 	}
+
+	assert.NotNil(t, generated)
+
+	signed := (*generated).SignedToken()
+	token := (*generated).Token()
+	claims := (*generated).Claims()
 
 	now := time.Now().UTC()
 
@@ -90,7 +96,12 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 	assert.Greater(t, len(*signed), 0)
 
 	// generation testing is complete, now onto verification
-	token, claims, err = service.Validate(*signed)
+	validated, err := service.Validate(*signed)
+
+	assert.NotNil(t, validated)
+
+	token = (*validated).Token()
+	claims = (*validated).Claims()
 
 	assert.NotNil(t, token)
 	assert.NotNil(t, claims)
