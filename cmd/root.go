@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
 	"github.com/naftulikay/golang-webapp/cmd/serve"
+	"github.com/naftulikay/golang-webapp/cmd/service"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -22,6 +23,7 @@ func Execute() error {
 
 func init() {
 	rootCommand.AddCommand(serve.Commands()...)
+	rootCommand.AddCommand(service.Commands()...)
 
 	// global viper initialization
 	viper.AutomaticEnv()

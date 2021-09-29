@@ -204,40 +204,8 @@ func init() {
 
 	flags := serveCommand.Flags()
 
-	// --env
-	flags.StringP(cmdConstants.CliFlagEnv, "e", cmdConstants.DefaultEnvironment,
-		fmt.Sprintf("The execution environment for the application. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarEnvironment)))
-
-	// --mysql-host
-	flags.StringP(cmdConstants.CliFlagMySQLHost, "", cmdConstants.DefaultMySQLHost,
-		fmt.Sprintf("The hostname or IP address of the MySQL database server. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarMySQLHost)))
-	// --mysql-port
-	flags.Uint16P(cmdConstants.CliFlagMySQLPort, "", cmdConstants.DefaultMySQLPort,
-		fmt.Sprintf("The port which the MySQL database server is listening on. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarMySQLPort)))
-	// --mysql-database
-	flags.StringP(cmdConstants.CliFlagMySQLDatabase, "", "",
-		fmt.Sprintf("The database schema within MySQL to use for the application. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarMySQLDatabase)))
-	// --mysql-user
-	flags.StringP(cmdConstants.CliFlagMySQLUser, "", "",
-		fmt.Sprintf("The MySQL user to connect as. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarMySQLUser)))
-	// --mysql-port
-	flags.StringP(cmdConstants.CliFlagMySQLPassword, "", "",
-		fmt.Sprintf("The MySQL password to connect with. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarMySQLPassword)))
-
-	// --listen
-	flags.StringP(cmdConstants.CliFlagListen, "H", cmdConstants.DefaultListenHost,
-		fmt.Sprintf("The host to listen on for incoming connections. [env: %s]",
-			strings.ToUpper(cmdConstants.EnvVarListenHost)))
-	// --port
-	flags.Uint16P(cmdConstants.CliFlagPort, "p", cmdConstants.DefaultListenPort,
-		fmt.Sprintf("The port to listen on for incoming connections. [env: %s]",
-			strings.ToUpper(cmdConstants.CliFlagPort)))
+	cmdCommon.MySQLFlags(flags)
+	cmdCommon.ListenFlags(flags)
 
 	// --migrate
 	flags.BoolP(cmdConstants.CliFlagMigrate, "", false,
