@@ -10,9 +10,10 @@ import (
 // AppImpl Implementation of the interfaces.App for single point of entry to application.
 type AppImpl struct {
 	db         *gorm.DB
-	config     *interfaces.AppConfig
-	services   *interfaces.AppServices
 	daos       *interfaces.AppDaos
+	config     *interfaces.AppConfig
+	logger     *zap.Logger
+	services   *interfaces.AppServices
 	router     *mux.Router
 	rootLogger *zap.Logger
 }
@@ -23,6 +24,10 @@ func (a AppImpl) DB() *gorm.DB {
 
 func (a AppImpl) Config() *interfaces.AppConfig {
 	return a.config
+}
+
+func (a AppImpl) Logger() *zap.Logger {
+	return a.logger
 }
 
 func (a AppImpl) Dao() *interfaces.AppDaos {

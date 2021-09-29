@@ -5,10 +5,13 @@ go 1.16
 require (
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/felixge/httpsnoop v1.0.2 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
+	github.com/stretchr/objx v0.3.0 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/swaggo/swag v1.7.3
 	github.com/twharmon/govalid v1.2.0
 	go.uber.org/atomic v1.9.0 // indirect

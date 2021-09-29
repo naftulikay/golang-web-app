@@ -10,6 +10,7 @@ type App interface {
 	Config() *AppConfig
 	Dao() *AppDaos
 	DB() *gorm.DB
+	Logger() *zap.Logger
 	Service() *AppServices
 	Router() *mux.Router
 	RootLogger() *zap.Logger
