@@ -13,6 +13,14 @@ type LoginServiceImpl struct {
 	logger *zap.Logger
 }
 
+func NewLoginService(dao interfaces.UserDao, jwt interfaces.JWTService, logger *zap.Logger) *LoginServiceImpl {
+	return &LoginServiceImpl{
+		dao:    dao,
+		jwt:    jwt,
+		logger: logger,
+	}
+}
+
 func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult, error) {
 	loginFailure := fmt.Errorf("login failed")
 

@@ -2,15 +2,11 @@ package service
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/hashicorp/go-multierror"
-	"github.com/howeyc/gopass"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
-	"strings"
 )
 
 var (
@@ -25,6 +21,9 @@ var (
 			cmdCommon.MySQLRegisterDefaults()
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			root := cmdCommon.Logger()
+			logger := root.Named("cmd.services.login")
+
 			type Config struct {
 				Email                       string `mapstructure:"email" validate:"required,email"`
 				Password                    string `mapstructure:"password" validate:"required_unless=PasswordStdin true"`
@@ -35,7 +34,7 @@ var (
 			var config Config
 
 			if err := viper.Unmarshal(&config); err != nil {
-				log.Fatalf("Unable to unmarshal configuration: %s", err)
+				logger.Fatal("Unable to unmarshal configuration", zap.Error(err))
 			}
 
 			// NOTE we don't support passing email, password, password-stdin via env, so manually extract and apply
@@ -47,49 +46,22 @@ var (
 			config.Password = password
 			config.PasswordStdin = passwordStdin
 
-			v := validator.New()
-			err := v.Struct(config)
-
-			if err != nil {
-				if invalidErr, ok := err.(*validator.InvalidValidationError); ok {
-					log.Fatalf("Unable to validate configuration: %s", invalidErr)
-				} else if errors, ok := err.(validator.ValidationErrors); ok {
-					var resultErr error
-
-					for _, e := range errors {
-						resultErr = multierror.Append(resultErr, e)
-					}
-
-					log.Fatalf("Configuration is invalid: %s", resultErr)
-				}
-			}
-
-			logger, err := zap.NewDevelopment()
-
-			if err != nil {
-				log.Fatalf("Unable to create a logger: %s", err)
-			}
+			cmdCommon.ValidateConfig(config, logger)
 
 			if passwordStdin {
-				print("Enter Password: ")
-
-				pwbytes, err := gopass.GetPasswd()
-
-				if err != nil {
-					logger.Fatal("Unable to read password from standard input.", zap.Error(err))
-				}
-
-				if len(pwbytes) == 0 {
-					logger.Fatal("Please enter a password.")
-				}
-
-				config.Password = strings.TrimSpace(string(pwbytes))
+				config.Password = cmdCommon.StdinPassword("Enter Password: ", logger)
 			}
 
 			logger.Info(fmt.Sprintf("Attempting to log in user %s...", config.Email))
 		},
 	}
 )
+
+func LoggerBuilder(parent *zap.Logger, name string) func() *zap.Logger {
+	return func() *zap.Logger {
+		return parent.Named(name)
+	}
+}
 
 func init() {
 	flags := loginCommand.Flags()

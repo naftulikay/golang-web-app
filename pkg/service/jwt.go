@@ -23,6 +23,19 @@ type JWTServiceImpl struct {
 	logger *zap.Logger
 }
 
+func NewJWTService(key [32]byte, logger *zap.Logger) (*JWTServiceImpl, error) {
+	r := JWTServiceImpl{
+		key:    key,
+		logger: logger,
+	}
+
+	if !r.safe() {
+		return nil, fmt.Errorf("key must not be a null array")
+	}
+
+	return &r, nil
+}
+
 func (j JWTServiceImpl) safe() bool {
 	zero := utils.NullBytes32()
 
