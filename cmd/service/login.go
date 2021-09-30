@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/hashicorp/go-multierror"
 	"github.com/howeyc/gopass"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
-	"github.com/naftulikay/golang-webapp/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -51,7 +51,17 @@ var (
 			err := v.Struct(config)
 
 			if err != nil {
-				log.Fatalf("Configuration is invalid: %s", err)
+				if invalidErr, ok := err.(*validator.InvalidValidationError); ok {
+					log.Fatalf("Unable to validate configuration: %s", invalidErr)
+				} else if errors, ok := err.(validator.ValidationErrors); ok {
+					var resultErr error
+
+					for _, e := range errors {
+						resultErr = multierror.Append(resultErr, e)
+					}
+
+					log.Fatalf("Configuration is invalid: %s", resultErr)
+				}
 			}
 
 			logger, err := zap.NewDevelopment()
@@ -89,6 +99,4 @@ func init() {
 	flags.StringP("email", "e", "", "The email to log in with.")
 	flags.StringP("password", "p", "", "The password to log in with.")
 	flags.BoolP("password-stdin", "", false, "Read the password from standard input.")
-
-	utils.Nop()
 }

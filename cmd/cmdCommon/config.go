@@ -7,3 +7,23 @@ type MySQLConfigCommon struct {
 	MySQLUser     string `mapstructure:"mysql_user" govalid:"req" validate:"required"`
 	MySQLPassword string `mapstructure:"mysql_password" govalid:"req" validate:"required"`
 }
+
+func (m MySQLConfigCommon) Host() string {
+	return m.MySQLHost
+}
+
+func (m MySQLConfigCommon) Port() uint16 {
+	return m.MySQLPort
+}
+
+func (m MySQLConfigCommon) Database() string {
+	return m.MySQLDatabase
+}
+
+func (m MySQLConfigCommon) User() string {
+	return m.MySQLUser
+}
+
+func (m MySQLConfigCommon) Password() string {
+	return m.Password()
+}
