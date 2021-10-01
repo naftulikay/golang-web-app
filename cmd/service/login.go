@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
+	"strings"
 )
 
 var (
@@ -96,7 +97,12 @@ var (
 				logger.Fatal("Login failed.")
 			}
 
-			logger.Info("Login successful", zap.String("jwt_token", (*login).SignedToken()))
+			user := (*login).User()
+
+			logger.Info("Login successful", zap.Uint("user_id", (*login).User().ID),
+				zap.String("user_email", user.Email),
+				zap.String("user_name", strings.Join([]string{user.FirstName, user.LastName}, " ")),
+				zap.String("jwt_token", (*login).SignedToken()))
 		},
 	}
 )
