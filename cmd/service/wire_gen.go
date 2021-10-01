@@ -10,11 +10,12 @@ import (
 	"github.com/naftulikay/golang-webapp/pkg/database"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/service"
+	"github.com/naftulikay/golang-webapp/pkg/types"
 )
 
 // Injectors from injectors.go:
 
-func initializeLoginService(config interfaces.MySQLConfig, jwtKey service.JWTKey, loginServiceLogger service.LoginServiceLogger, jwtServiceLogger service.JWTServiceLogger, userDaoLogger dao.UserDaoLogger, databaseLogger database.DatabaseLogger) (interfaces.LoginService, error) {
+func initializeLoginService(config interfaces.MySQLConfig, jwtKey types.JWTKey, loginServiceLogger types.LoginServiceLogger, jwtServiceLogger types.JWTServiceLogger, userDaoLogger types.UserDaoLogger, databaseLogger types.DatabaseLogger) (interfaces.LoginService, error) {
 	db, err := database.Connect(config, databaseLogger)
 	if err != nil {
 		return nil, err

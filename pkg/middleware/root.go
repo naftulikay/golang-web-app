@@ -6,9 +6,9 @@ import (
 )
 
 func ConfigureRoot(app interfaces.App) {
-
+	app.Router().Use(RequestMetadata())
 }
 
-func ConfigureApi(config interfaces.AppConfig, router *mux.Router) {
+func ConfigureApi(app interfaces.App, router *mux.Router) {
 
 }

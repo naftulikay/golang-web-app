@@ -24,6 +24,7 @@ func serveCommandFlagsToEnv() map[string]string {
 		cmdConstants.CliFlagMySQLPassword: cmdConstants.EnvVarMySQLPassword,
 		cmdConstants.CliFlagListen:        cmdConstants.EnvVarListenHost,
 		cmdConstants.CliFlagPort:          cmdConstants.EnvVarListenPort,
+		cmdConstants.CliFlagJWTKey:        cmdConstants.EnvVarJWTKey,
 	}
 }
 
@@ -38,10 +39,11 @@ func serveCommandEnvDefaults() map[string]interface{} {
 }
 
 type ServeConfig struct { // implements interfaces.AppConfig
+	JWTKey                      string `mapstructure:"jwt_key" validate:"required,base64|hexadecimal"`
 	Migrate                     bool   `mapstructure:"migrate"`
-	Environment                 string `mapstructure:"env" govalid:"req|in:dev,stg,prod"`
-	ListenHost                  string `mapstructure:"listen_host" govalid:"req"`
-	ListenPort                  uint16 `mapstructure:"listen_port" govalid:"req"`
+	Environment                 string `mapstructure:"env" validate:"required,oneof=dev stg prod"`
+	ListenHost                  string `mapstructure:"listen_host" validate:"required"`
+	ListenPort                  uint16 `mapstructure:"listen_port" validate:"required,gt=0"`
 	cmdCommon.MySQLConfigCommon `mapstructure:",squash" govalid:"req"`
 }
 
@@ -141,56 +143,23 @@ var (
 				config.Migrate = migrate
 			}
 
-			violations, err := validator.Violations(config)
+			cmdCommon.ValidateConfig(config, nil)
+
+			jwtKeyBytes, err := cmdCommon.HexOrBase64(config.JWTKey)
 
 			if err != nil {
-				log.Fatalf("Unable to run validator: %s", err)
+				log.Fatalf("Unable to parse JWT key as either hexadecimal or base-64: %s", err)
 			}
 
-			if len(violations) > 0 {
-				for _, v := range violations {
-					log.Printf("Configuration Error: %s", v)
-				}
-
-				log.Fatalf("Validation failed.")
+			if len(jwtKeyBytes) != 32 {
+				log.Fatalf("JWT key, when decoded, must be 32 bytes in length, not %d", len(jwtKeyBytes))
 			}
 
-			violations, err = validator.Violations(config.MySQLConfigCommon)
+			var jwtKey [32]byte
 
-			if err != nil {
-				log.Fatalf("Unable to run validator: %s", err)
-			}
+			copy(jwtKey[:], jwtKeyBytes)
 
-			if len(violations) > 0 {
-				for _, v := range violations {
-					log.Printf("MySQL Configuration Error: %s", v)
-				}
-
-				log.Fatalf("Validation failed.")
-			}
-
-			// validation for non-default parameters
-			if len(config.ListenHost) == 0 {
-				log.Fatalf("Please pass a valid listen host via the --%s CLI flag or %s environment variable.",
-					cmdConstants.CliFlagListen, strings.ToUpper(cmdConstants.EnvVarListenHost))
-			}
-
-			if len(config.MySQLDatabase) == 0 {
-				log.Fatalf("Please pass a MySQL database schema name via the --%s CLI flag or %s environment variable.",
-					cmdConstants.CliFlagMySQLDatabase, strings.ToUpper(cmdConstants.EnvVarMySQLDatabase))
-			}
-
-			if len(config.MySQLUser) == 0 {
-				log.Fatalf("Please pass a MySQL user name via the --%s CLI flag or %s environment variable.",
-					cmdConstants.CliFlagMySQLUser, strings.ToUpper(cmdConstants.EnvVarMySQLUser))
-			}
-
-			if len(config.MySQLPassword) == 0 {
-				log.Fatalf("Please pass a MySQL password via the --%s CLI flag or %s environment variable.",
-					cmdConstants.CliFlagMySQLPassword, strings.ToUpper(cmdConstants.EnvVarMySQLPassword))
-			}
-
-			pkg.Start(config)
+			pkg.Start(config, jwtKey)
 		},
 	}
 )
@@ -200,15 +169,6 @@ func Commands() []*cobra.Command {
 }
 
 func init() {
-	validator = govalid.New()
-
-	err := validator.Register(ServeConfig{}, ServeListenConfig{}, ServeMySQLConfig{},
-		cmdCommon.MySQLConfigCommon{})
-
-	if err != nil {
-		log.Fatalf("Unable to configure validators: %s", err)
-	}
-
 	flags := serveCommand.Flags()
 
 	cmdCommon.MySQLFlags(flags)
@@ -216,7 +176,11 @@ func init() {
 
 	// --env
 	flags.StringP(cmdConstants.CliFlagEnv, "", constants.DevEnvironment,
-		"The runtime execution environment.")
+		fmt.Sprintf("The runtime execution environment. [env: %s]", strings.ToUpper(cmdConstants.EnvVarEnvironment)))
+
+	flags.StringP(cmdConstants.CliFlagJWTKey, "j", "",
+		fmt.Sprintf("The JWT key, which is 32 bytes of binary data encoded either as hex or as base-64. [env: %s]",
+			strings.ToUpper(cmdConstants.EnvVarJWTKey)))
 
 	// --migrate
 	flags.BoolP(cmdConstants.CliFlagMigrate, "", false,

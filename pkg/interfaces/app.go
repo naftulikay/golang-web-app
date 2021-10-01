@@ -7,19 +7,20 @@ import (
 )
 
 type App interface {
-	Config() *AppConfig
-	Dao() *AppDaos
+	Config() AppConfig
+	Dao() AppDaos
 	DB() *gorm.DB
 	Logger() *zap.Logger
-	Service() *AppServices
+	Service() AppServices
 	Router() *mux.Router
 	RootLogger() *zap.Logger
 }
 
 type AppServices interface {
-	Login() *LoginService
+	Login() LoginService
+	JWT() JWTService
 }
 
 type AppDaos interface {
-	Users() *UserDao
+	Users() UserDao
 }

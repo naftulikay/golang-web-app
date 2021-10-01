@@ -3,23 +3,22 @@ MAINTAINER Naftuli Kay <me@naftuli.wtf>
 
 WORKDIR /usr/src/app
 
-# install utilities
-RUN go get github.com/swaggo/swag/cmd/swag
-RUN go get github.com/google/wire/cmd/wire
+# install tools early
+RUN go get -u github.com/google/wire/cmd/wire && \
+    go get -u github.com/swaggo/swag/cmd/swag
 
-COPY go.mod go.sum ./
-RUN go mod download
+# download modules
+COPY Makefile go.mod go.sum ./
+RUN make download
 
 # lots of seemingly redundant but not unrequired steps, not an issue at download time due to separate build image
 # even with a good .dockerignore, `COPY . .` forces a rebuild every time
-COPY main.go .
+COPY Makefile main.go ./
 COPY cmd/ /usr/src/app/cmd/
 COPY pkg/ /usr/src/app/pkg/
 
-# build the swagger docs
-RUN swag init
-# codegen where necessary
-RUN go generate
+# generate code
+RUN make generate
 
 # build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./api && \

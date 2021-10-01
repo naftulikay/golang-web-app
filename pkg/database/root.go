@@ -5,6 +5,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/models"
+	"github.com/naftulikay/golang-webapp/pkg/types"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -16,10 +17,8 @@ const (
 	MaxDatabaseConnectionRequests = uint64(15)
 )
 
-type DatabaseLogger *zap.Logger
-
 // Connect Attempt to connect to the database using an exponential backoff algorithm with a maximum retry count.
-func Connect(config interfaces.MySQLConfig, dbLogger DatabaseLogger) (*gorm.DB, error) {
+func Connect(config interfaces.MySQLConfig, dbLogger types.DatabaseLogger) (*gorm.DB, error) {
 	logger := zap.Logger(*dbLogger)
 
 	attempt := 0
@@ -83,4 +82,9 @@ func AutoMigrate(db *gorm.DB, logger *zap.Logger) error {
 	}
 
 	return err
+}
+
+// ExtractMySQLConfig Extractor function for wire to extract the MySQL config object from the app config.
+func ExtractMySQLConfig(app interfaces.AppConfig) interfaces.MySQLConfig {
+	return app.MySQL()
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/results"
+	"github.com/naftulikay/golang-webapp/pkg/types"
 	"go.uber.org/zap"
 )
 
@@ -13,9 +14,7 @@ type LoginServiceImpl struct {
 	logger *zap.Logger
 }
 
-type LoginServiceLogger *zap.Logger
-
-func NewLoginService(dao interfaces.UserDao, jwt interfaces.JWTService, logger LoginServiceLogger) *LoginServiceImpl {
+func NewLoginService(dao interfaces.UserDao, jwt interfaces.JWTService, logger types.LoginServiceLogger) *LoginServiceImpl {
 	return &LoginServiceImpl{
 		dao:    dao,
 		jwt:    jwt,
