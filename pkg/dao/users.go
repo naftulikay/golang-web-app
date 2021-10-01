@@ -12,7 +12,9 @@ type UserDaoImpl struct {
 	logger *zap.Logger
 }
 
-func NewUserDao(db *gorm.DB, logger *zap.Logger) *UserDaoImpl {
+type UserDaoLogger *zap.Logger
+
+func NewUserDao(db *gorm.DB, logger UserDaoLogger) *UserDaoImpl {
 	return &UserDaoImpl{
 		db:     db,
 		logger: logger,

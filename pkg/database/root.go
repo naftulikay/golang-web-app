@@ -16,8 +16,12 @@ const (
 	MaxDatabaseConnectionRequests = uint64(15)
 )
 
+type DatabaseLogger *zap.Logger
+
 // Connect Attempt to connect to the database using an exponential backoff algorithm with a maximum retry count.
-func Connect(config interfaces.MySQLConfig, logger *zap.Logger) (*gorm.DB, error) {
+func Connect(config interfaces.MySQLConfig, dbLogger DatabaseLogger) (*gorm.DB, error) {
+	logger := zap.Logger(*dbLogger)
+
 	attempt := 0
 	maxAttempts := MaxDatabaseConnectionRequests
 

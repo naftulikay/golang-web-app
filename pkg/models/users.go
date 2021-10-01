@@ -11,7 +11,7 @@ type User struct {
 	Email     string
 	FirstName string
 	LastName  string
-	Role      string `gorm:"type('user','admin')"`
+	Role      string `gorm:"type:enum('user','admin')"`
 	KDF       KDF    `gorm:"embedded;embeddedPrefix:kdf_"`
 	gorm.Model
 }

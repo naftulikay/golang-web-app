@@ -25,5 +25,5 @@ func (m MySQLConfigCommon) User() string {
 }
 
 func (m MySQLConfigCommon) Password() string {
-	return m.Password()
+	return m.MySQLPassword
 }

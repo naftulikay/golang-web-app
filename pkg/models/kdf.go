@@ -2,6 +2,7 @@ package models
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"golang.org/x/crypto/argon2"
 )
@@ -16,8 +17,8 @@ const (
 
 type KDF struct {
 	Algorithm    string `gorm:"type:enum('argon2id-v1')"`
-	PasswordHash [64]byte
-	Salt         [64]byte
+	PasswordHash []byte `gorm:"size:64"`
+	Salt         []byte `gorm:"size:64"`
 	TimeFactor   uint32
 	MemoryFactor uint32
 	ThreadFactor uint8
@@ -25,11 +26,20 @@ type KDF struct {
 }
 
 func (k KDF) Validate(password string) bool {
-	return false
+	derived := k.Derive(password)
+
+	return subtle.ConstantTimeCompare(derived[:], k.PasswordHash) == 1
 }
 
 func (k KDF) Derive(password string) [64]byte {
-	panic("not implemented")
+	var result [64]byte
+
+	digest := argon2.IDKey([]byte(password), k.Salt[:], k.TimeFactor, k.MemoryFactor, k.ThreadFactor,
+		k.KeyLen)
+
+	copy(result[:], digest)
+
+	return result
 }
 
 // NewKDF Generate a new KDF object without a password hash.
@@ -48,7 +58,7 @@ func NewKDF() KDF {
 
 	return KDF{
 		Algorithm:    KDFAlgorithmV1Name,
-		Salt:         salt,
+		Salt:         salt[:],
 		TimeFactor:   KDFAlgorithmV1Time,
 		MemoryFactor: KDFAlgorithmV1Memory,
 		ThreadFactor: KDFAlgorithmV1Thread,
@@ -60,10 +70,9 @@ func NewKDF() KDF {
 func GenKDF(password string) KDF {
 	kdf := NewKDF()
 
-	digest := argon2.IDKey([]byte(password), kdf.Salt[:], kdf.TimeFactor, kdf.MemoryFactor, kdf.ThreadFactor,
-		kdf.KeyLen)
+	pwhash := kdf.Derive(password)
 
-	copy(kdf.PasswordHash[:], digest)
+	kdf.PasswordHash = pwhash[:]
 
 	return kdf
 }

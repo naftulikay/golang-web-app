@@ -5,6 +5,7 @@ WORKDIR /usr/src/app
 
 # install utilities
 RUN go get github.com/swaggo/swag/cmd/swag
+RUN go get github.com/google/wire/cmd/wire
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -17,6 +18,8 @@ COPY pkg/ /usr/src/app/pkg/
 
 # build the swagger docs
 RUN swag init
+# codegen where necessary
+RUN go generate
 
 # build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./api && \

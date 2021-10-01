@@ -13,7 +13,9 @@ type LoginServiceImpl struct {
 	logger *zap.Logger
 }
 
-func NewLoginService(dao interfaces.UserDao, jwt interfaces.JWTService, logger *zap.Logger) *LoginServiceImpl {
+type LoginServiceLogger *zap.Logger
+
+func NewLoginService(dao interfaces.UserDao, jwt interfaces.JWTService, logger LoginServiceLogger) *LoginServiceImpl {
 	return &LoginServiceImpl{
 		dao:    dao,
 		jwt:    jwt,

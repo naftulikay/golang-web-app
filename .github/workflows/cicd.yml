@@ -33,9 +33,10 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
             ~/go/bin/swag
-      - run: go get -u github.com/swaggo/swag/cmd/swag
-      - run: go mod download -x
-      # FIXME enable swag model generation: "swag init"
+            ~/go/bin/wire
+      - run: make install-tools
+      - run: make download
+      - run: make generate
       - run: go build -v
 
   test:
@@ -54,9 +55,10 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
             ~/go/bin/swag
-      - run: go get -u github.com/swaggo/swag/cmd/swag
-      # FIXME enable swag model generation: "swag init"
-      - run: go mod download -x
+            ~/go/bin/wire
+      - run: make install-tools
+      - run: make download
+      - run: make generate
       - run: go test -v ./...
 
   audit:
