@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
+	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -18,16 +19,22 @@ var (
 				log.Fatalf("Unable to bind MySQL environment variable to CLI flags: %s", err)
 			}
 
+			if err := viper.BindPFlag(cmdConstants.EnvVarJWTKey, cmd.Flags().Lookup(cmdConstants.CliFlagJWTKey)); err != nil {
+				log.Fatalf("Unable to bind JWT key variable to CLI flags: %s", err)
+			}
+
 			cmdCommon.MySQLRegisterDefaults()
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			root := cmdCommon.Logger()
 			logger := root.Named("cmd.services.login")
+			appLogger := root.Named("app")
 
 			type Config struct {
 				Email                       string `mapstructure:"email" validate:"required,email"`
 				Password                    string `mapstructure:"password" validate:"required_unless=PasswordStdin true"`
 				PasswordStdin               bool   `mapstructure:"password_stdin"`
+				JWTKey                      string `mapstructure:"jwt_key" validate:"required,base64|hexadecimal"`
 				cmdCommon.MySQLConfigCommon `mapstructure:",squash"`
 			}
 
@@ -52,16 +59,47 @@ var (
 				config.Password = cmdCommon.StdinPassword("Enter Password: ", logger)
 			}
 
+			// parse JWT key
+			jwtKeyBytes, err := cmdCommon.HexOrBase64(config.JWTKey)
+
+			if err != nil {
+				logger.Fatal("Unable to decode JWT key as base-64 or hex", zap.Error(err))
+			}
+
+			if len(jwtKeyBytes) != 32 {
+				logger.Fatal("JWT key is not 32 bytes long.", zap.Int("length", len(jwtKeyBytes)))
+			}
+
+			var jwtKey [32]byte
+
+			copy(jwtKey[:], jwtKeyBytes)
+
+			loginSvc, err := initializeLoginService(
+				config.MySQLConfigCommon,
+				jwtKey,
+				appLogger.Named("services.login"),
+				appLogger.Named("services.jwt"),
+				appLogger.Named("dao.user"),
+				appLogger.Named("dbinit"),
+			)
+
+			if err != nil {
+				logger.Fatal("Unable to wire dependencies.", zap.Error(err))
+			}
+
+			// ready to go
 			logger.Info(fmt.Sprintf("Attempting to log in user %s...", config.Email))
+
+			login, err := loginSvc.Login(config.Email, config.Password)
+
+			if err != nil {
+				logger.Fatal("Login failed.")
+			}
+
+			logger.Info("Login successful", zap.String("jwt_token", (*login).SignedToken()))
 		},
 	}
 )
-
-func LoggerBuilder(parent *zap.Logger, name string) func() *zap.Logger {
-	return func() *zap.Logger {
-		return parent.Named(name)
-	}
-}
 
 func init() {
 	flags := loginCommand.Flags()
@@ -71,4 +109,7 @@ func init() {
 	flags.StringP("email", "e", "", "The email to log in with.")
 	flags.StringP("password", "p", "", "The password to log in with.")
 	flags.BoolP("password-stdin", "", false, "Read the password from standard input.")
+
+	flags.StringP(cmdConstants.CliFlagJWTKey, "j", "",
+		fmt.Sprintf("The 32-byte JWT key encoded in hex or base64. [env: %s]", cmdConstants.EnvVarJWTKey))
 }

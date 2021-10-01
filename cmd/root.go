@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
+	"github.com/naftulikay/golang-webapp/cmd/generate"
 	"github.com/naftulikay/golang-webapp/cmd/serve"
 	"github.com/naftulikay/golang-webapp/cmd/service"
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ func Execute() error {
 }
 
 func init() {
+	rootCommand.AddCommand(generate.Commands()...)
 	rootCommand.AddCommand(serve.Commands()...)
 	rootCommand.AddCommand(service.Commands()...)
 

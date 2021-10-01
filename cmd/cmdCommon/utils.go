@@ -1,6 +1,8 @@
 package cmdCommon
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/go-multierror"
@@ -72,4 +74,28 @@ func Logger() *zap.Logger {
 	}
 
 	return logger
+}
+
+// HexOrBase64 Decodes the input string as either base-64 or hexadecimal.
+func HexOrBase64(value string) ([]byte, error) {
+	var multi error
+
+	// NOTE order of operations is extremely important! hex is valid base64 but base64 is not valid hex
+	result, err := hex.DecodeString(value)
+
+	if err != nil {
+		multi = multierror.Append(multi, err)
+	} else {
+		return result, nil
+	}
+
+	result, err = base64.StdEncoding.DecodeString(value)
+
+	if err != nil {
+		multi = multierror.Append(multi, err)
+	} else {
+		return result, nil
+	}
+
+	return []byte{}, multi
 }

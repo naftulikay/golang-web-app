@@ -18,12 +18,16 @@ const (
 	JWTExpiry = 30 * 24 * time.Hour
 )
 
+type JWTKey [32]byte
+
+type JWTServiceLogger *zap.Logger
+
 type JWTServiceImpl struct {
 	key    [32]byte
 	logger *zap.Logger
 }
 
-func NewJWTService(key [32]byte, logger *zap.Logger) (*JWTServiceImpl, error) {
+func NewJWTService(key JWTKey, logger JWTServiceLogger) (*JWTServiceImpl, error) {
 	r := JWTServiceImpl{
 		key:    key,
 		logger: logger,

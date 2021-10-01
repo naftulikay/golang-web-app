@@ -5,6 +5,7 @@ import (
 	"github.com/naftulikay/golang-webapp/cmd/cmdCommon"
 	"github.com/naftulikay/golang-webapp/cmd/cmdConstants"
 	"github.com/naftulikay/golang-webapp/pkg"
+	"github.com/naftulikay/golang-webapp/pkg/constants"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -134,6 +135,12 @@ var (
 				log.Fatalf("Unable to unmarshal config: %s", err)
 			}
 
+			migrate, err := cmd.Flags().GetBool(cmdConstants.CliFlagMigrate)
+
+			if err == nil {
+				config.Migrate = migrate
+			}
+
 			violations, err := validator.Violations(config)
 
 			if err != nil {
@@ -207,7 +214,11 @@ func init() {
 	cmdCommon.MySQLFlags(flags)
 	cmdCommon.ListenFlags(flags)
 
+	// --env
+	flags.StringP(cmdConstants.CliFlagEnv, "", constants.DevEnvironment,
+		"The runtime execution environment.")
+
 	// --migrate
 	flags.BoolP(cmdConstants.CliFlagMigrate, "", false,
-		"Whether to attempt to auto-migrate database models on stort.")
+		"Whether to attempt to auto-migrate database models on start.")
 }
