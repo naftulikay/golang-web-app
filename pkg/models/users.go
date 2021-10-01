@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"strings"
+)
 
 const (
 	UserTypeNormal = "user"
@@ -14,4 +17,8 @@ type User struct {
 	Role      string `gorm:"type:enum('user','admin')"`
 	KDF       KDF    `gorm:"embedded;embeddedPrefix:kdf_"`
 	gorm.Model
+}
+
+func (u User) Name() string {
+	return strings.Join([]string{strings.TrimSpace(u.FirstName), strings.TrimSpace(u.LastName)}, " ")
 }
