@@ -6,11 +6,13 @@ type Response struct {
 	StatusCode uint16
 	Error      null.String
 	Data       interface{}
-	Metadata   ResponseMeta
+	Links      ResponseLinks `json:"_links"`
 }
 
-type ResponseMeta struct {
-	Self string
+type ResponseLinks struct {
+	Self string      `json:"_self"`
+	Prev null.String `json:"_prev,omitempty"`
+	Next null.String `json:"_next,omitempty"`
 }
 
 type PaginatedResponse struct {
@@ -19,11 +21,5 @@ type PaginatedResponse struct {
 	Data       []interface{}
 	Count      uint
 	Total      uint
-	Metadata   PaginatedResponseMeta
-}
-
-type PaginatedResponseMeta struct {
-	Prev null.String
-	Next null.String
-	Self string
+	Links      ResponseLinks
 }

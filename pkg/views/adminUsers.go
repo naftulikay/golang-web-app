@@ -5,12 +5,16 @@ type AdminGetUserResponse struct {
 }
 
 type AdminUserReadView struct {
-	ID       uint
-	Username string
+	ID        uint
+	Email     string
+	FirstName string
+	LastName  string
+	Role      string
 }
 
 type AdminUserCreateRequest struct {
-	Username string
+	Email    string
+	Role     string
 	Password string
 }
 

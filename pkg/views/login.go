@@ -3,7 +3,7 @@ package views
 import "time"
 
 type LoginRequest struct {
-	Username string
+	Email    string
 	Password string
 }
 
@@ -13,7 +13,7 @@ type LoginResponse struct {
 	Username  string
 	FirstName string
 	LastName  string
-	Roles     []string
+	Role      string
 	Token     string
 	IssuedAt  time.Time
 	NotBefore time.Time
