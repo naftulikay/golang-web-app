@@ -7,9 +7,10 @@ SHELL:=$(shell which bash)
 install-tools:
 	@go get -u github.com/google/wire/cmd/wire
 	@go get -u github.com/swaggo/swag/cmd/swag
+	@go get github.com/securego/gosec/v2/cmd/gosec
 
 go-generate:
-	@go generate
+	@go generate ./...
 
 swag-generate:
 	@swag init
@@ -32,6 +33,9 @@ test: download
 		echo 'SUCCESS: all tests passed!'
 
 build: generate download
+
+audit: install-tools download generate
+	@gosec ./...
 
 image:
 	@docker build -t naftulikay/golang-webapp:latest ./

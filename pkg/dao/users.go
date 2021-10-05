@@ -3,6 +3,7 @@ package dao
 import (
 	"fmt"
 	"github.com/naftulikay/golang-webapp/pkg/models"
+	"github.com/naftulikay/golang-webapp/pkg/types"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -12,9 +13,7 @@ type UserDaoImpl struct {
 	logger *zap.Logger
 }
 
-type UserDaoLogger *zap.Logger
-
-func NewUserDao(db *gorm.DB, logger UserDaoLogger) *UserDaoImpl {
+func NewUserDao(db *gorm.DB, logger types.UserDaoLogger) *UserDaoImpl {
 	return &UserDaoImpl{
 		db:     db,
 		logger: logger,

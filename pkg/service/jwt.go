@@ -8,6 +8,7 @@ import (
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/models"
 	"github.com/naftulikay/golang-webapp/pkg/results"
+	"github.com/naftulikay/golang-webapp/pkg/types"
 	"github.com/naftulikay/golang-webapp/pkg/utils"
 	"go.uber.org/zap"
 	"time"
@@ -18,16 +19,12 @@ const (
 	JWTExpiry = 30 * 24 * time.Hour
 )
 
-type JWTKey [32]byte
-
-type JWTServiceLogger *zap.Logger
-
 type JWTServiceImpl struct {
 	key    [32]byte
 	logger *zap.Logger
 }
 
-func NewJWTService(key JWTKey, logger JWTServiceLogger) (*JWTServiceImpl, error) {
+func NewJWTService(key types.JWTKey, logger types.JWTServiceLogger) (*JWTServiceImpl, error) {
 	r := JWTServiceImpl{
 		key:    key,
 		logger: logger,
