@@ -56,4 +56,4 @@ Licensed at your discretion under either
  [dep-wire]:             https://github.com/google/wire
  [dep-zap]:              https://github.com/uber-go/zap
 
- [status.svg]: https://github.com/naftulikay/golang-webapp/actions/workflows/cicd.yml/badge.svg
+ [status.svg]: https://github.com/naftulikay/golang-webapp/actions/workflows/golang.yml/badge.svg
