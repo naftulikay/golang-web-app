@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/naftulikay/golang-webapp/pkg/auth"
 	"github.com/naftulikay/golang-webapp/pkg/constants"
 	"github.com/naftulikay/golang-webapp/pkg/interfaces"
+	"github.com/naftulikay/golang-webapp/pkg/logging"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -17,10 +20,13 @@ var _ interfaces.RequestContext = (*RequestContextImpl)(nil)
 var V validator.Validate
 
 type RequestContextImpl struct {
-	id     *uuid.UUID
-	app    interfaces.App
-	logger *zap.Logger
-	req    *http.Request
+	id            *uuid.UUID
+	app           interfaces.App
+	logger        *zap.Logger
+	req           *http.Request
+	authenticated bool
+	token         *jwt.Token
+	claims        *auth.JWTClaims
 }
 
 func (r RequestContextImpl) ID() uuid.UUID {
@@ -55,6 +61,26 @@ func (r RequestContextImpl) Context() context.Context {
 	return r.req.Context()
 }
 
+func (r RequestContextImpl) Authenticated() bool {
+	return r.authenticated
+}
+
+func (r RequestContextImpl) IsUser() bool {
+	return r.authenticated && r.claims.Role == "user" || r.claims.Role == "admin"
+}
+
+func (r RequestContextImpl) IsAdmin() bool {
+	return r.authenticated && r.claims.Role == "admin"
+}
+
+func (r RequestContextImpl) Token() *jwt.Token {
+	return r.token
+}
+
+func (r RequestContextImpl) Claims() *auth.JWTClaims {
+	return r.claims
+}
+
 func (r RequestContextImpl) JSON(dest interface{}) error {
 	if err := json.NewDecoder(r.Req().Body).Decode(dest); err != nil {
 		return err
@@ -86,11 +112,43 @@ func NewRequestContext(app interfaces.App, logger *zap.Logger, r *http.Request) 
 		return nil, fmt.Errorf("unable to extract request id as a UUID")
 	}
 
+	authenticated, ok := r.Context().Value(constants.ContextKeyAuthenticated).(bool)
+
+	if !ok {
+		logger.Error("Unable to extract 'authenticated' bool field from the request context.")
+	}
+
+	var token *jwt.Token
+	var claims *auth.JWTClaims
+
+	if authenticated {
+		t, ok := r.Context().Value(constants.ContextKeyJWTToken).(jwt.Token)
+
+		if !ok {
+			logger.Error("Unable to extract 'jwt_token' from the request context.")
+		} else {
+			token = &t
+		}
+
+		c, ok := r.Context().Value(constants.ContextKeyJWTClaims).(auth.JWTClaims)
+
+		if !ok {
+			logger.Error("Unable to extract 'jwt_claims' from the request context.")
+		} else {
+			claims = &c
+		}
+	}
+
+	fields := logging.ZapFieldsFromContext(r.Context())
+
 	return &RequestContextImpl{
-		id:     &reqID,
-		app:    app,
-		logger: logger,
-		req:    r,
+		id:            &reqID,
+		app:           app,
+		logger:        logger.With(fields...),
+		req:           r,
+		authenticated: authenticated,
+		token:         token,
+		claims:        claims,
 	}, nil
 }
 

@@ -19,6 +19,8 @@ const (
 	JWTExpiry = 30 * 24 * time.Hour
 )
 
+var _ interfaces.JWTService = (*JWTServiceImpl)(nil)
+
 type JWTServiceImpl struct {
 	key    [32]byte
 	logger *zap.Logger
@@ -52,7 +54,7 @@ func (j JWTServiceImpl) secretFactory(token *jwt.Token) (interface{}, error) {
 	return j.key[:], nil
 }
 
-func (j JWTServiceImpl) Generate(user *models.User) (*interfaces.JWTGenerateResult, error) {
+func (j JWTServiceImpl) Generate(user *models.User) (interfaces.JWTGenerateResult, error) {
 	if !j.safe() {
 		panic("jwt key has a zero value")
 	}
@@ -83,10 +85,10 @@ func (j JWTServiceImpl) Generate(user *models.User) (*interfaces.JWTGenerateResu
 
 	result := results.NewJWTGenerateResult(&signed, token, &claims)
 
-	return &result, nil
+	return result, nil
 }
 
-func (j JWTServiceImpl) Validate(encodedToken string) (*interfaces.JWTValidateResult, error) {
+func (j JWTServiceImpl) Validate(encodedToken string) (interfaces.JWTValidateResult, error) {
 	if !j.safe() {
 		panic("jwt key has a zero value")
 	}
@@ -104,7 +106,7 @@ func (j JWTServiceImpl) Validate(encodedToken string) (*interfaces.JWTValidateRe
 			zap.Uint64("user_id", claims.UserID), zap.String("user_email", claims.Email))
 
 		result := results.NewJWTValidateResult(*token, *claims)
-		return &result, nil
+		return result, nil
 	}
 
 	if !claimsOk {

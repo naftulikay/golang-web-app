@@ -13,7 +13,7 @@ RUN make download
 
 # lots of seemingly redundant but not unrequired steps, not an issue at download time due to separate build image
 # even with a good .dockerignore, `COPY . .` forces a rebuild every time
-COPY Makefile main.go ./
+COPY main.go ./
 COPY cmd/ /usr/src/app/cmd/
 COPY pkg/ /usr/src/app/pkg/
 

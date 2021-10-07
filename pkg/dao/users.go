@@ -2,15 +2,30 @@ package dao
 
 import (
 	"fmt"
+	"github.com/naftulikay/golang-webapp/pkg/interfaces"
 	"github.com/naftulikay/golang-webapp/pkg/models"
 	"github.com/naftulikay/golang-webapp/pkg/types"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
+var _ interfaces.UserDao = (*UserDaoImpl)(nil)
+
 type UserDaoImpl struct {
 	db     *gorm.DB
 	logger *zap.Logger
+}
+
+func (u UserDaoImpl) Exists(id uint) (bool, error) {
+	var count int64
+
+	tx := u.db.Model(&models.User{}).Where("id = ?", id).Count(&count)
+
+	if tx.Error != nil {
+		return false, tx.Error
+	}
+
+	return count > 0, nil
 }
 
 func NewUserDao(db *gorm.DB, logger types.UserDaoLogger) *UserDaoImpl {

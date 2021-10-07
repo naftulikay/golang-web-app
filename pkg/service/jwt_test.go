@@ -72,9 +72,9 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 
 	assert.NotNil(t, generated)
 
-	signed := (*generated).SignedToken()
-	token := (*generated).Token()
-	claims := (*generated).Claims()
+	signed := generated.SignedToken()
+	token := generated.Token()
+	claims := generated.Claims()
 
 	now := time.Now().UTC()
 
@@ -102,8 +102,8 @@ func TestJWTServiceImpl_E2E(t *testing.T) {
 
 	assert.NotNil(t, validated)
 
-	token = (*validated).Token()
-	claims = (*validated).Claims()
+	token = validated.Token()
+	claims = validated.Claims()
 
 	assert.NotNil(t, token)
 	assert.NotNil(t, claims)

@@ -50,7 +50,7 @@ func (l LoginServiceImpl) Login(email, password string) (*interfaces.LoginResult
 			return nil, loginFailure
 		}
 
-		result := results.NewLoginResult(*user, (*jwtResult).SignedToken(), (*jwtResult).Token(), (*jwtResult).Claims())
+		result := results.NewLoginResult(*user, jwtResult.SignedToken(), jwtResult.Token(), jwtResult.Claims())
 
 		return &result, nil
 	} else {

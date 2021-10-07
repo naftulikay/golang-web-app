@@ -41,7 +41,7 @@ type MockJWTService struct {
 	interfaces.JWTService
 }
 
-func (m MockJWTService) Generate(user *models.User) (*interfaces.JWTGenerateResult, error) {
+func (m MockJWTService) Generate(user *models.User) (interfaces.JWTGenerateResult, error) {
 	if m.returnError {
 		return nil, fmt.Errorf("mock error")
 	}
